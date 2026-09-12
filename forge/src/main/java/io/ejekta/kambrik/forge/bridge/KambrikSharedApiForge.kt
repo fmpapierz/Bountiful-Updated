@@ -6,7 +6,6 @@ import io.ejekta.kambrik.bridge.KambrikSharedApi
 import io.ejekta.kambrik.ext.register
 import io.ejekta.kambrik.message.KambrikMsg
 import io.ejekta.kambrik.registration.KambrikAutoRegistrar
-import io.ejekta.kambrikx.serial.toSimplePacketCodec
 import kotlinx.serialization.KSerializer
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Registry
@@ -46,9 +45,19 @@ class KambrikSharedApiForge : KambrikSharedApi {
         serializer: KSerializer<M>,
         val type: CustomPacketPayload.Type<M>
     ) {
-        @Suppress("UNCHECKED_CAST")
-        val streamCodec: StreamCodec<RegistryFriendlyByteBuf, M> =
-            serializer.toSimplePacketCodec() as StreamCodec<RegistryFriendlyByteBuf, M>
+        // Kambrik's shared codec is a plain writeUtf/readUtf pair, which is what Fabric and
+        // NeoForge use. Forge needs its own: it hands onPacketReceived a payload buffer whose
+        // reader index is already at the end, so readUtf fails on the length varint before it
+        // reads a single byte of the message ("readerIndex(27) + length(1) exceeds
+        // writerIndex(27)") and the client is kicked with a protocol error. That buffer holds
+        // exactly this one message, so rewinding it before decoding is the whole fix.
+        val streamCodec: StreamCodec<RegistryFriendlyByteBuf, M> = StreamCodec.ofMember(
+            { value, buf -> buf.writeUtf(NETWORK_JSON.encodeToString(serializer, value)) },
+            { buf ->
+                buf.readerIndex(0)
+                NETWORK_JSON.decodeFromString(serializer, buf.readUtf())
+            }
+        )
     }
 
     private val clientMsgs = mutableListOf<ForgeMsgData<KambrikMsg>>()
@@ -151,5 +160,8 @@ class KambrikSharedApiForge : KambrikSharedApi {
 
     private companion object {
         const val PROTOCOL_VERSION = 1
+
+        /** The same format Kambrik uses for its own packet codecs. */
+        val NETWORK_JSON = Kambrik.Serial.networkingFormat()
     }
 }

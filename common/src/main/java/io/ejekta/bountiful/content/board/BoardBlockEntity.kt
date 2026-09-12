@@ -274,7 +274,10 @@ class BoardBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Bountiful
         if (newStack.count == 0) {
             return
         }
-        val newDecrees = newStack[BountifulContent.DECREE_DATA]!!.ids
+        // A decree does not have to carry decree data — one taken straight from the creative tab
+        // has none — and the slot accepts any decree item, so treat a missing component as empty
+        // rather than dereferencing it and killing the container click.
+        val newDecrees = newStack[BountifulContent.DECREE_DATA]?.ids ?: emptySet()
         val decs = getBoardDecrees().map { it.id }.toSet() + newDecrees
         val allDecreesSet = BountifulContent.Decrees.map { it.id }.toSet()
         val allDecrees = decs.intersect(allDecreesSet) == allDecreesSet
