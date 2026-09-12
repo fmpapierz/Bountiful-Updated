@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "io.ejekta.kambrik.internal.mixins",
+  "mixins": [
+    "StructurePoolAccessor",
+    "AbstractCriterionTriggerer"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

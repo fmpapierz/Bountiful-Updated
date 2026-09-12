@@ -1,0 +1,107 @@
+package io.ejekta.bountiful.bounty.types.builtin
+
+import com.mojang.logging.LogUtils
+import com.mojang.serialization.JsonOps
+import io.ejekta.bountiful.bounty.types.IBountyObjective
+import io.ejekta.bountiful.components.BountyDataEntry
+import io.ejekta.bountiful.data.PoolEntry
+import io.ejekta.bountiful.util.isJsonSubset
+import io.ejekta.bountiful.util.iterateBountyStacks
+import io.ejekta.kambrik.ext.id
+import net.minecraft.ChatFormatting
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.nbt.NbtOps
+import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.MutableComponent
+import net.minecraft.resources.Identifier
+import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.util.ProblemReporter
+import net.minecraft.world.level.storage.TagValueOutput
+import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.entity.player.Player
+
+
+// ProblemReporter wants an SLF4J logger, which is not the Log4j one on Bountiful itself.
+private val NBT_PROBLEM_LOGGER = LogUtils.getLogger()
+
+class BountyTypeEntity : IBountyObjective {
+
+    override val id: Identifier = Identifier.parse("entity")
+
+    override fun isValid(entry: PoolEntry, server: MinecraftServer): Boolean {
+        val id = getEntityType(Identifier.parse(entry.content)).id
+        return id == Identifier.parse(entry.content)
+    }
+
+    override fun textOnBounty(entry: BountyDataEntry, isObj: Boolean, player: Player, current: Int): List<MutableComponent> {
+        val progress = getProgress(entry, player, current)
+        val result = when (isObj) {
+            true -> Component.translatable("bountiful.bounty.type.entity.kill").append(" ").append(
+                getEntityType(entry).description.copy()
+            ).withStyle(progress.color).append(
+                progress.neededText.colored(ChatFormatting.WHITE)
+            )
+            false -> Component.literal("ERR: Cannot have an entity (${entry.content}) as a reward.")
+        }
+        return listOf(result)
+    }
+
+    override fun textOnBoardSidebar(entry: BountyDataEntry, player: Player): List<Component> {
+        return listOf(getEntityType(entry).description)
+    }
+
+    fun incrementEntityBounties(playerEntity: ServerPlayer, killedEntity: LivingEntity) {
+        // The player cannot kill themselves (arrow, potion, etc) to complete a bounty
+        if (playerEntity == killedEntity) {
+            return
+        }
+        playerEntity.iterateBountyStacks {
+            val entityObjs = objs.filter { it.logic?.id == this@BountyTypeEntity.id }
+            if (entityObjs.isNotEmpty()) {
+                var changes = false
+                for (obj in entityObjs) {
+                    if (obj.content == killedEntity.type.id.toString()) {
+                        val nbtMatches = obj.data?.let { reqData ->
+                            // 26.2 writes entity NBT through a ValueOutput rather than straight
+                            // into a CompoundTag.
+                            val entityNbt = ProblemReporter.ScopedCollector(
+                                killedEntity.problemPath(), NBT_PROBLEM_LOGGER
+                            ).use { reporter ->
+                                val output = TagValueOutput.createWithContext(
+                                    reporter, killedEntity.registryAccess()
+                                )
+                                killedEntity.saveWithoutId(output)
+                                output.buildResult()
+                            }
+                            val entityJson = NbtOps.INSTANCE.convertTo(JsonOps.INSTANCE, entityNbt).asJsonObject
+                            isJsonSubset(reqData, entityJson)
+                        } ?: true
+                        if (nbtMatches) {
+                            advance(obj)
+                            changes = true
+                        }
+                    }
+                }
+                if (changes) {
+                    checkForCompletionAndAlert(playerEntity)
+                }
+            }
+        }
+    }
+
+
+    companion object {
+        fun getEntityType(entry: BountyDataEntry): EntityType<*> {
+            return getEntityType(Identifier.parse(entry.content))
+        }
+
+        fun getEntityType(id: Identifier): EntityType<*> {
+            return BuiltInRegistries.ENTITY_TYPE.getOptional(id).orElse(null)
+                ?: throw IllegalArgumentException("Unknown entity type: $id")
+        }
+    }
+
+}

@@ -1,0 +1,218 @@
+package io.ejekta.bountiful.util
+
+import net.minecraft.ChatFormatting
+import net.minecraft.network.chat.TextColor
+import com.google.gson.JsonElement
+import com.google.gson.JsonObject
+import com.mojang.serialization.JsonOps
+import io.ejekta.bountiful.components.BountyStack
+import io.ejekta.bountiful.content.BountifulContent
+import io.ejekta.bountiful.content.board.BoardBlockEntity
+import io.ejekta.bountiful.content.gui.BoardScreenHandler
+import io.ejekta.bountiful.content.item.BountyItem
+import io.ejekta.kambrik.message.KambrikMsg
+import net.minecraft.client.Minecraft
+import net.minecraft.core.*
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.network.chat.Component
+import net.minecraft.resources.RegistryOps
+import net.minecraft.resources.ResourceKey
+import net.minecraft.resources.Identifier
+import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.tags.TagKey
+import net.minecraft.world.Container
+import net.minecraft.world.SimpleMenuProvider
+import net.minecraft.world.entity.ai.Brain
+import net.minecraft.world.entity.ai.memory.MemoryModuleType
+import net.minecraft.world.entity.npc.villager.Villager
+import net.minecraft.world.inventory.MenuConstructor
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.Items
+import net.minecraft.world.item.trading.ItemCost
+import net.minecraft.world.item.trading.MerchantOffer
+import net.minecraft.world.level.Level
+import java.util.*
+import kotlin.jvm.optionals.getOrNull
+import kotlin.random.Random
+
+fun isJsonSubset(sub: JsonElement?, sup: JsonElement?): Boolean {
+    if (sub == null || sup == null) return false
+    if (sub == sup) return true
+    return when {
+        sub.isJsonObject && sup.isJsonObject -> {
+            val subObj = sub.asJsonObject
+            val supObj = sup.asJsonObject
+            subObj.entrySet().all { (key, subValue) -> supObj.has(key) && isJsonSubset(subValue, supObj[key]) }
+        }
+        sub.isJsonArray && sup.isJsonArray -> {
+            val subArr = sub.asJsonArray
+            val supArr = sup.asJsonArray
+            subArr.size() <= supArr.size() && (0 until subArr.size()).all { i -> isJsonSubset(subArr[i], supArr[i]) }
+        }
+        else -> sub == sup
+    }
+}
+
+fun <T : Any> Registry<T>.getNullable(rl: Identifier): T? {
+    return getOptional(rl).getOrNull()
+}
+
+fun ItemStack.asComponentJson(lookup: HolderLookup.Provider): JsonObject? {
+    val regOps = RegistryOps.create(JsonOps.INSTANCE, lookup)
+    val result = ItemStack.CODEC.encodeStart(regOps, this).resultOrPartial().getOrNull()?.asJsonObject
+    return result?.get("components")?.asJsonObject
+}
+
+fun randomSplit(num: Double, ways: Int): List<Double> {
+    val bits = (0 until ways).map { Random.nextDouble() }
+    val sum = bits.sum()
+    return bits.map { (it / sum) * num }
+}
+
+val Container.readOnlyCopy: NonNullList<ItemStack>
+    get() = NonNullList.withSize(containerSize, ItemStack.EMPTY).apply {
+        (0 until containerSize).forEach { i -> this[i] = getItem(i) }
+    }
+
+fun <T : Any> List<T>.weightedRandomIntBy(func: T.() -> Int): T {
+    val mapped = associate { it to func(it) }
+    return mapped.weightedRandomInt()
+}
+
+fun <T : Any> List<T>.weightedRandomDblBy(func: T.() -> Double): T {
+    val mapped = associate { it to func(it) }
+    return mapped.weightedRandomDbl()
+}
+
+fun Level.everySeconds(secs: Int, offset: Long = 0L, func: () -> Unit) {
+    if (((gameTime + (secs * GameTime.TICK_RATE) + offset) % GameTime.TICK_RATE) == 0L) {
+        func()
+    }
+}
+
+fun <T : Any> Map<T, Int>.weightedRandomInt(): T {
+    val sum = values.sum()
+
+    if (sum == 0) {
+        return keys.random()
+    }
+
+    var point = (1..sum).random()
+
+    for ((item, weight) in this) {
+        if (point <= weight) {
+            return item
+        }
+        point -= weight
+    }
+    return keys.last()
+}
+
+fun <T : Any> Map<T, Double>.weightedRandomDbl(): T {
+    val sum = values.sum()
+
+    if (sum == 0.0) {
+        return keys.random()
+    }
+
+    var point = Random.nextDouble(sum)
+
+    for ((item, weight) in this) {
+        if (point <= weight) {
+            return item
+        }
+        point -= weight
+    }
+    return keys.last()
+}
+
+fun CompoundTag.putBlockPos(key: String, pos: BlockPos) {
+    val posNbt = CompoundTag().apply {
+        putInt("x", pos.x)
+        putInt("y", pos.y)
+        putInt("z", pos.z)
+    }
+    put(key, posNbt)
+}
+
+fun CompoundTag.getBlockPos(key: String): BlockPos {
+    val tag = getCompound(key).orElse(null) ?: return BlockPos.ZERO
+    return try {
+        BlockPos(
+            tag.getInt("x").orElse(0),
+            tag.getInt("y").orElse(0),
+            tag.getInt("z").orElse(0)
+        )
+    } catch (e: Exception) {
+        BlockPos.ZERO
+    }
+}
+
+fun getTagItemKey(id: Identifier): TagKey<Item> = TagKey.create(BuiltInRegistries.ITEM.key(), id)
+
+fun getTagItems(tagKey: TagKey<Item>): List<Item> {
+    return BuiltInRegistries.ITEM.getTagOrEmpty(tagKey).map { it.value() }
+}
+
+val KambrikMsg.ctx: Minecraft
+    get() = Minecraft.getInstance()
+
+fun ServerPlayer.iterateBountyStacks(func: BountyStack.() -> Unit) {
+    inventory.getNonEquipmentItems().filter {
+        it.item is BountyItem
+    }.map { BountyStack(it) }.forEach(func)
+}
+
+fun Brain<*>.ensureMemoryModules(memoryList: List<MemoryModuleType<*>>) {
+    for (item in memoryList) {
+        if (getMemory(item).isEmpty) {
+            setMemory(item, Optional.empty())
+        }
+    }
+}
+
+fun ServerPlayer.openSimpleMenu(screenName: Component, handlerFactory: MenuConstructor): OptionalInt {
+    return openMenu(SimpleMenuProvider(handlerFactory, screenName))
+}
+
+fun Villager.checkOnBoard(boardPos: BlockPos) {
+    // Inject memory into memory map, else remembrance will fail
+    brain.ensureMemoryModules(listOf(
+        BountifulContent.MEM_MODULE_NEAREST_BOARD
+    ))
+    // Set up villager memory
+    brain.setMemory(
+        BountifulContent.MEM_MODULE_NEAREST_BOARD, GlobalPos.of(
+        level().dimension(), boardPos
+    ))
+}
+
+fun Villager.hackyGiveTradeExperience(amt: Int) {
+    notifyTrade(MerchantOffer(ItemCost(Items.AIR), ItemStack.EMPTY, 1, amt, 1f))
+}
+
+val ServerPlayer.currentBoardInteracting: BoardBlockEntity?
+    get() {
+        val shPos = (containerMenu as? BoardScreenHandler)?.container?.pos
+        shPos?.run {
+            level().getBlockEntity(this)?.let {
+                return (it as? BoardBlockEntity)
+            }
+        }
+        return null
+    }
+
+
+
+
+/**
+ * The RGB value behind a formatting code.
+ *
+ * Minecraft 26.2 dropped the colour value from [ChatFormatting] and keeps it on [TextColor]
+ * instead, so the two are bridged here rather than at every call site.
+ */
+val ChatFormatting.rgb: Int?
+    get() = TextColor.fromLegacyFormat(this)?.value

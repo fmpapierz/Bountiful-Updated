@@ -1,0 +1,38 @@
+plugins {
+    id 'net.neoforged.moddev'
+}
+
+neoForge {
+    version = neoforge_version
+
+    runs {
+        client { client() }
+        server { server(); programArgument '--nogui' }
+    }
+
+    mods {
+        "${mod_id}" { sourceSet sourceSets.main }
+    }
+
+    // Access wideners are a Fabric concept; NeoForge reads the same widening as a transformer.
+    accessTransformers.from rootProject.file('common/src/main/resources/META-INF/accesstransformer.cfg')
+}
+
+// There is no Kotlin language adapter for NeoForge on Minecraft 26.2 (Kotlin for Forge stops at
+// the 1.21 line), so the mod loads through plain javafml and carries the Kotlin runtime itself.
+configurations {
+    bundled
+}
+
+dependencies {
+    bundled "org.jetbrains.kotlin:kotlin-stdlib:${kotlin_version}"
+    bundled "org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:${kotlinx_serialization_version}"
+    bundled "org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:${kotlinx_serialization_version}"
+}
+
+jar {
+    from { configurations.bundled.collect { it.isDirectory() ? it : zipTree(it) } }
+    exclude 'META-INF/*.SF', 'META-INF/*.RSA', 'META-INF/*.DSA', 'META-INF/maven/**'
+    exclude 'module-info.class', 'META-INF/versions/*/module-info.class'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}

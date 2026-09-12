@@ -1,0 +1,26 @@
+plugins {
+    id 'net.fabricmc.fabric-loom'
+}
+
+loom {
+    accessWidenerPath = rootProject.file('common/src/main/resources/bountiful.accesswidener')
+
+    runs {
+        client { client(); ideConfigGenerated = true; name = 'Fabric Client' }
+        server { server(); ideConfigGenerated = true; name = 'Fabric Server' }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+
+    // Fabric Language Kotlin supplies the Kotlin runtime on Fabric and Quilt, so the jar does
+    // not bundle its own copy the way the Forge and NeoForge jars have to.
+    implementation "net.fabricmc:fabric-language-kotlin:${fabric_language_kotlin_version}"
+
+    // Only the config-screen hook needs Mod Menu, and only if the player has it installed.
+    compileOnly "com.terraformersmc:modmenu:${modmenu_version}"
+    localRuntime "com.terraformersmc:modmenu:${modmenu_version}"
+}

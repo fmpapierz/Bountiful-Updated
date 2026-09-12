@@ -1,0 +1,29 @@
+{
+  "parent": "bountiful:bountiful/bounty_complete",
+  "criteria": {
+    "turn_in_close_call": {
+      "trigger": "bountiful:procrastinator"
+    }
+  },
+  "display": {
+    "announce_to_chat": true,
+    "description": {
+      "translate": "bountiful.advancement.procrastinator.desc"
+    },
+    "frame": "task",
+    "hidden": false,
+    "icon": {
+      "id": "minecraft:red_bed"
+    },
+    "show_toast": false,
+    "title": {
+      "translate": "bountiful.advancement.procrastinator.title"
+    }
+  },
+  "requirements": [
+    [
+      "turn_in_close_call"
+    ]
+  ],
+  "sends_telemetry_event": false
+}

@@ -1,0 +1,29 @@
+{
+  "parent": "bountiful:bountiful/bounty_taken",
+  "criteria": {
+    "place_decree": {
+      "trigger": "bountiful:decree_placed"
+    }
+  },
+  "display": {
+    "announce_to_chat": true,
+    "description": {
+      "translate": "bountiful.advancement.town_crier.desc"
+    },
+    "frame": "task",
+    "hidden": false,
+    "icon": {
+      "id": "bountiful:decree"
+    },
+    "show_toast": false,
+    "title": {
+      "translate": "bountiful.advancement.town_crier.title"
+    }
+  },
+  "requirements": [
+    [
+      "place_decree"
+    ]
+  ],
+  "sends_telemetry_event": false
+}

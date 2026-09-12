@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${version}",
+
+  "name": "${mod_name}",
+  "description": "${mod_description}",
+  "authors": [
+    "${mod_authors}"
+  ],
+  "contributors": [
+    "AkiShirai (board block art)",
+    "Zano1999 (translations)",
+    "GodGun968 (translations)"
+  ],
+  "contact": {
+    "homepage": "${mod_homepage}",
+    "sources": "${mod_homepage}",
+    "issues": "${mod_issues}"
+  },
+
+  "license": "${mod_license}",
+  "icon": "assets/${mod_id}/icon.png",
+
+  "environment": "*",
+
+  "accessWidener": "bountiful.accesswidener",
+  "entrypoints": {
+    "main": [
+      "io.ejekta.bountiful.BountifulModFabric"
+    ],
+    "client": [
+      "io.ejekta.bountiful.client.BountifulClient"
+    ],
+    "modmenu": [
+      "io.ejekta.bountiful.config.BountifulModMenu"
+    ]
+  },
+  "mixins": [
+    "bountiful.mixins.json",
+    "bountiful-kambrik.mixins.json"
+  ],
+
+  "custom": {
+    "modmenu": {
+      "links": {
+        "modmenu.homepage": "${mod_homepage}",
+        "modmenu.issues": "${mod_issues}"
+      }
+    }
+  },
+
+  "depends": {
+    "fabricloader": "${fabric_loader_version_range}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version_range}",
+    "java": ">=${java_version}",
+    "fabric-language-kotlin": ">=1.14.0"
+  }
+}

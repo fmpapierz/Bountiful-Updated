@@ -1,0 +1,13 @@
+accessWidener	v2	official
+# Combining decrees in an anvil
+accessible	field	net/minecraft/world/inventory/AnvilMenu	cost	Lnet/minecraft/world/inventory/DataSlot;
+accessible	field	net/minecraft/world/inventory/ItemCombinerMenu	resultSlots	Lnet/minecraft/world/inventory/ResultContainer;
+accessible	field	net/minecraft/world/inventory/ItemCombinerMenu	inputSlots	Lnet/minecraft/world/Container;
+# Registering the bounty board point of interest
+accessible	method	net/minecraft/world/entity/ai/village/poi/PoiTypes	register	(Lnet/minecraft/core/Registry;Lnet/minecraft/resources/ResourceKey;Ljava/util/Set;II)Lnet/minecraft/world/entity/ai/village/poi/PoiType;
+# Adding the board and decree items to a creative tab
+accessible	field	net/minecraft/world/item/CreativeModeTabs	FUNCTIONAL_BLOCKS	Lnet/minecraft/resources/ResourceKey;
+# Constructing menu types directly (vendored Kambrik registrar)
+accessible	method	net/minecraft/world/inventory/MenuType	<init>	(Lnet/minecraft/world/inventory/MenuType$MenuSupplier;Lnet/minecraft/world/flag/FeatureFlagSet;)V
+# Unwrapping a RegistryOps back to its underlying ops (vendored Percale)
+accessible	field	net/minecraft/resources/DelegatingOps	delegate	Lcom/mojang/serialization/DynamicOps;

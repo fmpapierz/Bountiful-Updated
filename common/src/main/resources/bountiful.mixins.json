@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "io.ejekta.bountiful.mixin",
+  "mixins": [
+    "BountifulAnvilMenuMixin",
+    "BountifulTaskMixin",
+    "JigsawAddPiecesMixin",
+    "JigsawPlacementMixin",
+    "JigsawPlacerAccessor",
+    "SinglePoolElementAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "parent": "bountiful:bountiful/town_crier",
+  "criteria": {
+    "combined_decrees": {
+      "trigger": "bountiful:printing_press"
+    }
+  },
+  "display": {
+    "announce_to_chat": true,
+    "description": {
+      "translate": "bountiful.advancement.printing_press.desc"
+    },
+    "frame": "task",
+    "hidden": false,
+    "icon": {
+      "id": "minecraft:anvil"
+    },
+    "show_toast": false,
+    "title": {
+      "translate": "bountiful.advancement.printing_press.title"
+    }
+  },
+  "requirements": [
+    [
+      "combined_decrees"
+    ]
+  ],
+  "sends_telemetry_event": false
+}

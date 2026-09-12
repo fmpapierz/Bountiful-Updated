@@ -1,0 +1,19 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "misc",
+	"pattern": [
+		"PS ",
+		"SGS",
+		"DSP"
+	],
+	"key": {
+		"P": "minecraft:paper",
+		"S": "minecraft:stick",
+		"G": "minecraft:gold_ingot",
+		"D": "minecraft:purple_dye"
+	},
+	"result": {
+		"count": 1,
+		"id": "bountiful:decree"
+	}
+}

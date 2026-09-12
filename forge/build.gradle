@@ -1,0 +1,50 @@
+plugins {
+    id 'net.minecraftforge.gradle'
+}
+
+minecraft {
+    accessTransformers.from rootProject.file('common/src/main/resources/META-INF/accesstransformer.cfg')
+
+    runs {
+        configureEach {
+            workingDir = layout.projectDirectory.dir('run')
+            systemProperty 'eventbus.api.strictRuntimeChecks', 'true'
+            // Forge finds a mixin config either from the jar manifest or from this argument;
+            // in a dev run there is no jar yet, so the argument is what applies the mixin.
+            args '--mixin.config=bountiful.mixins.json', '--mixin.config=bountiful-kambrik.mixins.json'
+        }
+
+        register('client')
+        register('server') { args '--nogui' }
+    }
+}
+
+repositories {
+    minecraft.mavenizer(it)
+    maven fg.forgeMaven
+    maven fg.minecraftLibsMaven
+    mavenCentral()
+}
+
+// There is no Kotlin language adapter for Forge on Minecraft 26.2, so the mod loads through
+// plain javafml and carries the Kotlin runtime itself.
+configurations {
+    bundled
+}
+
+dependencies {
+    implementation minecraft.dependency("net.minecraftforge:forge:${minecraft_version}-${forge_version}")
+
+    bundled "org.jetbrains.kotlin:kotlin-stdlib:${kotlin_version}"
+    bundled "org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:${kotlinx_serialization_version}"
+    bundled "org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:${kotlinx_serialization_version}"
+}
+
+jar {
+    manifest.attributes 'MixinConfigs': 'bountiful.mixins.json,bountiful-kambrik.mixins.json'
+
+    from { configurations.bundled.collect { it.isDirectory() ? it : zipTree(it) } }
+    exclude 'META-INF/*.SF', 'META-INF/*.RSA', 'META-INF/*.DSA', 'META-INF/maven/**'
+    exclude 'module-info.class', 'META-INF/versions/*/module-info.class'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}

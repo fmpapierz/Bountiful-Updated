@@ -1,0 +1,45 @@
+package io.ejekta.bountiful.bounty.types.builtin
+
+import io.ejekta.bountiful.bounty.types.IBountyObjective
+import io.ejekta.bountiful.bounty.types.Progress
+import io.ejekta.bountiful.components.BountyDataEntry
+import io.ejekta.bountiful.data.PoolEntry
+import net.minecraft.ChatFormatting
+import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.MutableComponent
+import net.minecraft.resources.Identifier
+import net.minecraft.server.MinecraftServer
+import net.minecraft.world.entity.player.Player
+
+
+class BountyTypeCriteria : IBountyObjective {
+
+    override val id: Identifier = Identifier.parse("criteria")
+
+    override fun isValid(entry: PoolEntry, server: MinecraftServer): Boolean {
+        return true // TODO can we validate Criteria?
+    }
+
+    override fun textOnBounty(entry: BountyDataEntry, isObj: Boolean, player: Player, current: Int): List<MutableComponent> {
+        val progress = getProgress(entry, player, current)
+        val textSum = if (entry.name != null) Component.literal(entry.name) else entry.translation
+        return listOf(
+            textSum.colored(progress.color).append(progress.neededText.colored(ChatFormatting.WHITE))
+        )
+    }
+
+    override fun textOnBoardSidebar(entry: BountyDataEntry, player: Player): List<Component> {
+        return listOf(
+            if (entry.name != null) Component.literal(entry.name) else entry.translation
+        )
+    }
+
+    override fun getProgress(entry: BountyDataEntry, player: Player, current: Int): Progress {
+        return Progress(current, entry.amount)
+    }
+
+    override fun consumeObjectives(entry: BountyDataEntry, player: Player, current: Int): Boolean {
+        return current >= entry.amount
+    }
+
+}

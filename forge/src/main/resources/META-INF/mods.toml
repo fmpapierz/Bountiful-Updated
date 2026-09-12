@@ -1,0 +1,38 @@
+# Kotlin for Forge has no Minecraft 26.2 build, so the mod loads through plain javafml and
+# bundles the Kotlin runtime in its own jar.
+modLoader = "javafml"
+loaderVersion = "${forge_version_range}"
+license = "${mod_license}"
+issueTrackerURL = "${mod_issues}"
+
+[[mods]]
+modId = "${mod_id}"
+version = "${version}"
+displayName = "${mod_name}"
+displayURL = "${mod_homepage}"
+logoFile = "assets/${mod_id}/icon.png"
+authors = "${mod_authors}"
+credits = "AkiShirai (board block art), Zano1999 and GodGun968 (translations)"
+description = '''
+${mod_description}
+'''
+
+[[mixins]]
+config = "bountiful.mixins.json"
+
+[[mixins]]
+config = "bountiful-kambrik.mixins.json"
+
+[[dependencies.${mod_id}]]
+modId = "forge"
+mandatory = true
+versionRange = "${forge_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "minecraft"
+mandatory = true
+versionRange = "${minecraft_version_range}"
+ordering = "NONE"
+side = "BOTH"

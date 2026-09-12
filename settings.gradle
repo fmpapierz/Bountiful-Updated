@@ -1,0 +1,35 @@
+pluginManagement {
+    repositories {
+        maven { name = 'Fabric'; url = 'https://maven.fabricmc.net/' }
+        maven { name = 'NeoForged'; url = 'https://maven.neoforged.net/releases' }
+        maven { name = 'MinecraftForge'; url = 'https://maven.minecraftforge.net/' }
+        gradlePluginPortal()
+    }
+
+    plugins {
+        id 'net.fabricmc.fabric-loom' version "${fabric_loom_version}"
+        id 'net.neoforged.moddev' version "${moddevgradle_version}"
+        id 'net.minecraftforge.gradle' version "${forgegradle_version}"
+        id 'org.jetbrains.kotlin.jvm' version "${kotlin_version}"
+        id 'org.jetbrains.kotlin.plugin.serialization' version "${kotlin_version}"
+    }
+}
+
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+if (JavaVersion.current().ordinal() + 1 < 25) {
+    throw new GradleException(
+            "Minecraft ${minecraft_version} needs Java 25 or newer; Gradle is running on Java ${JavaVersion.current()}.")
+}
+
+rootProject.name = 'Bountiful'
+
+// 'common' is a source-only folder rather than a Gradle project: the root build.gradle folds it
+// into each platform module below. That keeps every published jar self-contained and means Loom,
+// ForgeGradle and ModDevGradle never have to agree on a shared Minecraft artifact.
+include 'fabric'
+include 'quilt'
+include 'forge'
+include 'neoforge'
