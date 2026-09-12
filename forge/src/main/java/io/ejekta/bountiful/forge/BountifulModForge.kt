@@ -9,6 +9,7 @@ import io.ejekta.kambrik.bridge.Kambridge
 import io.ejekta.kambrik.forge.bridge.KambrikSharedApiForge
 import io.ejekta.kambrik.registration.KambrikRegistrar
 import net.minecraft.core.Registry
+import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.level.ServerLevel
@@ -89,6 +90,9 @@ class BountifulModForge(context: FMLJavaModLoadingContext) {
 
     @Suppress("UNCHECKED_CAST")
     private fun registerRegistryContent(evt: RegisterEvent) {
+        evt.register(Registries.POINT_OF_INTEREST_TYPE) {
+            BountifulContent.registerPointsOfInterest()
+        }
         KambrikRegistrar[BountifulContent].content.forEach { entry ->
             evt.register(entry.registry.key() as ResourceKey<out Registry<Any>>) {
                 it.register(

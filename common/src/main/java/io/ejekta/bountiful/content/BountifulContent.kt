@@ -95,7 +95,8 @@ object BountifulContent : KambrikAutoRegistrar {
 
     val MEM_MODULE_NEAREST_BOARD by MEM_MODULE_NEAREST_BOARD_INSTANCE
 
-    val POI_BOUNTY_BOARD = "bountyboard".forVillagerPoi(setOf(BOARD.value.defaultBlockState()), 1, 1)
+    val POI_BOUNTY_BOARD: ResourceKey<PoiType> =
+        ResourceKey.create(Registries.POINT_OF_INTEREST_TYPE, Bountiful.id("bountyboard"))
 
     // Populates the decree that the wandering-trader trades in data/bountiful/villager_trade hand out.
     val DECREE_TRADE_FUNCTION = "wandering_decree".forRegistration(
@@ -133,10 +134,29 @@ object BountifulContent : KambrikAutoRegistrar {
         Triggers
     }
 
-    private fun String.forVillagerPoi(stateSet: Set<BlockState>, tickets: Int, searchDistance: Int): ResourceKey<PoiType> {
-        val registryKey = ResourceKey.create(Registries.POINT_OF_INTEREST_TYPE, Bountiful.id(this))
-        PoiTypes.register(BuiltInRegistries.POINT_OF_INTEREST_TYPE, registryKey, stateSet, tickets, searchDistance)
-        return registryKey
+    /**
+     * Registers the bounty board's point of interest.
+     *
+     * This writes straight into a vanilla registry, so it must not happen while [BountifulContent]
+     * is being class-initialised: on Forge and NeoForge the mod constructor runs after the
+     * registries are frozen, and doing it there fails with "Registry is already frozen". Each
+     * loader calls this at a point where the point-of-interest registry is still open.
+     */
+    fun registerPointsOfInterest() {
+        // Loaders differ in how often they fire their registry hooks — NeoForge dispatches
+        // RegisterEvent for a registry more than once — and vanilla throws if a block state is
+        // mapped to two PoI types. Ask vanilla whether the state is already mapped rather than
+        // tracking it here, so the check holds however often, and from wherever, this is called.
+        val boardState = BOARD.value.defaultBlockState()
+        if (PoiTypes.forState(boardState).isPresent) return
+
+        PoiTypes.register(
+            BuiltInRegistries.POINT_OF_INTEREST_TYPE,
+            POI_BOUNTY_BOARD,
+            setOf(boardState),
+            1,
+            1
+        )
     }
 
 }

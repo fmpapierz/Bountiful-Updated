@@ -52,6 +52,7 @@ class BountifulModFabric : ModInitializer {
         BountifulIO.loadConfig()
 
         KambrikRegistrar.doRegistrationsFor(BountifulContent)
+        BountifulContent.registerPointsOfInterest()
 
         Bountybridge.registerServerMessages()
         if (FabricLoader.getInstance().environmentType == net.fabricmc.api.EnvType.SERVER) {
