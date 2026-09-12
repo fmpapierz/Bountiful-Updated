@@ -92,8 +92,10 @@ class BountifulModNeoForge(modEventBus: IEventBus, container: ModContainer) {
 
     @Suppress("UNCHECKED_CAST")
     private fun registerRegistryContent(evt: RegisterEvent) {
+        // This loader keeps the block-state to point-of-interest map itself and fills it in from
+        // the type's matchingStates on add, so only the type goes in here.
         evt.register(Registries.POINT_OF_INTEREST_TYPE) {
-            BountifulContent.registerPointsOfInterest()
+            it.register(Bountiful.id("bountyboard"), BountifulContent.newBoardPoiType())
         }
         KambrikRegistrar[BountifulContent].content.forEach { entry ->
             evt.register(entry.registry.key() as ResourceKey<out Registry<Any>>) {

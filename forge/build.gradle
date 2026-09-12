@@ -26,6 +26,31 @@ repositories {
     mavenCentral()
 }
 
+// ForgeGradle's dev run hands FML one directory per source set, and FML takes the one holding
+// META-INF/mods.toml — the processed resources — as the mod itself. That directory has to contain
+// the mod's classes too, or Mixin cannot resolve them ("Error loading class: MixinHelper").
+//
+// ForgeGradle can merge the source sets for us, but its merge only copies the files javac itself
+// produced, so the ~465 classes the Kotlin compiler produces never arrive. Copying both compilers'
+// output into the processed resources builds that complete directory instead, which is why
+// net.minecraftforge.gradle.merge-source-sets is off for this project: merging on top of this
+// would leave Kotlin's own output directory as a second JPMS module exporting the same packages,
+// and the GAME module layer then refuses to resolve.
+//
+// `from(task.map { ... })` carries the task dependency with it, so both compilers are guaranteed
+// to have run first.
+tasks.named('processResources') {
+    from(tasks.named('compileKotlin').map { it.destinationDirectory })
+    from(tasks.named('compileJava').map { it.destinationDirectory })
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// That directory now holds everything, so the raw class directories must come off the source set's
+// output: left there they stay on the run classpath and load as a second module exporting the mod's
+// own packages. Both compilers still run — processResources depends on them, above — and the jar
+// still gets every class, because it packs this same directory.
+sourceSets.main.output.classesDirs.setFrom(files())
+
 // There is no Kotlin language adapter for Forge on Minecraft 26.2, so the mod loads through
 // plain javafml and carries the Kotlin runtime itself.
 configurations {

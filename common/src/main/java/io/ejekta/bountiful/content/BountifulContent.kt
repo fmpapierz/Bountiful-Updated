@@ -79,7 +79,7 @@ object BountifulContent : KambrikAutoRegistrar {
     val BOARD = "bountyboard" forBlock { props -> BoardBlock(props) }
 
     val BOARD_ITEM by "bountyboard" forItem { props ->
-        BlockItem(BOARD.value, props.stacksTo(1).fireResistant())
+        BlockItem(BOARD.value, props.stacksTo(1).fireResistant().useBlockDescriptionPrefix())
     }
 
     val BOARD_ENTITY by "board-be".forBlockEntity(BOARD, ::BoardBlockEntity)
@@ -135,25 +135,29 @@ object BountifulContent : KambrikAutoRegistrar {
     }
 
     /**
-     * Registers the bounty board's point of interest.
+     * The bounty board's point of interest.
      *
-     * This writes straight into a vanilla registry, so it must not happen while [BountifulContent]
-     * is being class-initialised: on Forge and NeoForge the mod constructor runs after the
-     * registries are frozen, and doing it there fails with "Registry is already frozen". Each
-     * loader calls this at a point where the point-of-interest registry is still open.
+     * Building it here rather than registering it from a property initialiser matters: on Forge and
+     * NeoForge the mod constructor runs after the registries are frozen, so anything that writes to
+     * a registry during class initialisation fails with "Registry is already frozen". Each loader
+     * registers this at a point where the point-of-interest registry is still open.
+     */
+    fun newBoardPoiType(): PoiType = PoiType(setOf(BOARD.value.defaultBlockState()), 1, 1)
+
+    /**
+     * Registers the bounty board's point of interest the vanilla way, which both adds the type to
+     * the registry and maps its block states.
+     *
+     * This is for Fabric and Quilt only. Forge and NeoForge keep the block-state to point-of-
+     * interest map themselves and fill it in from `matchingStates` the moment the type is added to
+     * the registry, so they register [newBoardPoiType] directly; calling this there would map every
+     * state a second time and the game refuses to start with "defined in more than one PoI type".
      */
     fun registerPointsOfInterest() {
-        // Loaders differ in how often they fire their registry hooks — NeoForge dispatches
-        // RegisterEvent for a registry more than once — and vanilla throws if a block state is
-        // mapped to two PoI types. Ask vanilla whether the state is already mapped rather than
-        // tracking it here, so the check holds however often, and from wherever, this is called.
-        val boardState = BOARD.value.defaultBlockState()
-        if (PoiTypes.forState(boardState).isPresent) return
-
         PoiTypes.register(
             BuiltInRegistries.POINT_OF_INTEREST_TYPE,
             POI_BOUNTY_BOARD,
-            setOf(boardState),
+            setOf(BOARD.value.defaultBlockState()),
             1,
             1
         )
