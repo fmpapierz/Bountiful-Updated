@@ -41,7 +41,7 @@
       },
       {
         "id": "java",
-        "versions": ">=${java_version}"
+        "versions": ">=${java_runtime_version}"
       },
       {
         "id": "fabric-language-kotlin",

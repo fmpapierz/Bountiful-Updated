@@ -77,7 +77,8 @@ subprojects {
                 mod_issues     : mod_issues,
 
                 minecraft_version: minecraft_version,
-                java_version     : java_version,
+                java_version        : java_version,
+                java_runtime_version: java_runtime_version,
 
                 minecraft_version_range      : minecraft_version_range,
                 fabric_loader_version_range  : fabric_loader_version_range,
