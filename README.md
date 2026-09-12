@@ -4,6 +4,8 @@ Bountiful adds bounty boards to the world: take a bounty, meet its objectives, h
 reward. This repository is an unofficial update of [ejektaflex/Bountiful](https://github.com/ejektaflex/Bountiful)
 to **Minecraft 26.2**, built for **Fabric, Quilt, Forge and NeoForge** from one shared source tree.
 
+All four loaders build, launch and have been played in-game.
+
 ## Downloads
 
 `./gradlew build` writes all four installable jars to `build/libs/`:
@@ -52,11 +54,48 @@ prices follow the mod's original 2, 3, 5, 9 ladder. The one behavioural differen
 the decree count per trade, weighted heavily toward one decree, whereas the four fixed trades are
 now picked between evenly.
 
-**26.2 API updates**, the notable ones: the advancement `criterion` package split into
-`advancements.triggers` and `advancements.predicates`; the colour value behind a formatting code
-moved from `ChatFormatting` to `TextColor`; the current screen and the toast manager moved onto
-`Gui`; `BlockPos.center` became `Vec3.atCenterOf`; entity NBT is written through a `ValueOutput`;
-and `MultiBufferSource`, `ColorArgument` and `ItemProperties` are gone.
+**26.2 API updates**, the notable ones:
+
+- the advancement `criterion` package split into `advancements.triggers` and `advancements.predicates`
+- the colour value behind a formatting code moved from `ChatFormatting` to `TextColor`
+- the current screen and the toast manager moved onto `Gui`
+- `BlockPos.center` became `Vec3.atCenterOf`
+- entity NBT is written through a `ValueOutput` rather than straight into a `CompoundTag`
+- `MultiBufferSource`, `ColorArgument` and `ItemProperties` are gone
+- block items derive their own description id instead of delegating to the block, so the board item
+  needs `useBlockDescriptionPrefix()` to keep using `block.bountiful.bountyboard`
+- `Entity.getId()` throws until an id is assigned, which matters for the throwaway entities the
+  board screen draws as previews — they are never added to a level, so they are given their own ids
+- `pack.mcmeta` must use `min_format`/`max_format` for formats newer than 81
+
+## Loader differences worth knowing
+
+Most of the mod is loader-agnostic, but four things genuinely differ, and each is commented at the
+point where it happens:
+
+**Points of interest.** Forge and NeoForge keep the block-state to point-of-interest map themselves
+and fill it in from a type's `matchingStates` the moment it enters the registry. Calling vanilla's
+`PoiTypes.register` there maps every state a second time and mod loading aborts, so those two
+register the `PoiType` alone while Fabric and Quilt use the vanilla helper, which does both halves.
+Registration also cannot happen during class initialisation: on Forge and NeoForge the mod
+constructor runs after the registries are frozen.
+
+**Forge networking.** Forge hands `PayloadChannel.onPacketReceived` a payload buffer whose reader
+index is already at the end, so the shared `writeUtf`/`readUtf` codec fails on the length varint
+before reading any of the message. The Forge bridge therefore uses its own codec that rewinds the
+buffer first; that buffer holds exactly one message, so reading from the start is always correct.
+Fabric and NeoForge keep Kambrik's shared codec.
+
+**Forge's dev run.** ForgeGradle gives FML one directory per source set and treats the one holding
+`mods.toml` as the mod, and its optional source-set merge only copies the files javac itself
+produced — so the Kotlin compiler's output never arrives and Mixin cannot resolve its targets. The
+`forge` module copies both compilers' output into the processed resources to make that directory a
+complete mod, and takes the raw class directories off the source set output so they do not load as
+a second JPMS module exporting the mod's own packages. This is why
+`net.minecraftforge.gradle.merge-source-sets` is off. The published jar is unaffected.
+
+**Mod list icons.** NeoForge deprecated `logoFile` in favour of `iconFile` for square icons; Forge
+still reads `logoFile`. The two manifests differ on that one key.
 
 ## Building
 
@@ -68,7 +107,12 @@ JDK 25 and run:
 ```
 
 Per-loader tasks are `:fabric:build`, `:quilt:build`, `:forge:build`, `:neoforge:build`, and each
-loader has `runClient` / `runServer` for a dev instance.
+loader has `runClient` / `runServer` for a dev instance. To run more than one loader's client at
+once, give each its own Gradle project cache, or they will block on the project lock:
+
+```
+./gradlew :fabric:runClient --project-cache-dir=.gradle/rc-fabric
+```
 
 ## Layout
 
