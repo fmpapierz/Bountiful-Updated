@@ -19,6 +19,12 @@ import net.minecraft.world.item.ItemStack
 import kotlin.math.max
 import kotlin.math.min
 
+/**
+ * Ids handed to the throwaway entities drawn as previews in GUIs. Counting down from -1 keeps
+ * them clear of the positive ids the server assigns to real entities.
+ */
+private var nextPreviewEntityId = -1
+
 data class KGuiDsl(val ctx: KGui, val context: GuiGraphicsExtractor, val mouseX: Int, val mouseY: Int, val delta: Float?) {
 
     val fontRenderer: Font
@@ -263,8 +269,17 @@ data class KGuiDsl(val ctx: KGui, val context: GuiGraphicsExtractor, val mouseX:
         }
 
         fun livingEntity(entityType: EntityType<out LivingEntity>, size: Double = 20.0) {
-            val eet = Minecraft.getInstance().level?.let { entityType.create(it, EntitySpawnReason.LOAD) } ?: return
-            val entity = ctx.entityRenderCache.getOrPut(entityType) { eet }
+            val level = Minecraft.getInstance().level ?: return
+            val entity = ctx.entityRenderCache[entityType]
+                ?: (entityType.create(level, EntitySpawnReason.LOAD) ?: return).also { created ->
+                    // These previews are never added to a level, so nothing ever assigns them an
+                    // entity id. Minecraft 26.2 throws from Entity.getId() while it is still zero,
+                    // and the inventory entity renderer asks for one, which crashed the board
+                    // screen as soon as it drew an entity objective. Hand each preview a distinct
+                    // id far outside the range the server hands out for real entities.
+                    created.id = nextPreviewEntityId--
+                    ctx.entityRenderCache[entityType] = created
+                }
             livingEntity(entity, size)
         }
 
